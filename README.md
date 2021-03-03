@@ -1,6 +1,6 @@
 # DOSBox interface
 
-An interface for running dosbox commands in node.js application.
+An interface for running dosbox commands via child_process in node.js application.
 
 ## Installation
 
@@ -15,6 +15,28 @@ Requires [DOSBox](https://www.dosbox.com/) to be installed and that it can be ca
 ## Usage
 
 ```javascript
+const BOX = require('dosbox-interface');
+let box = BOX.DOSBox.Fromdir('C:\\your\\DOSBox\\Folder');
 
+//set DOSBox configurations
+const conf = {
+    cpu: {
+        cycles: '1000'
+    },
+    sdl: {
+        windowresolution: '1024x640',
+        output: 'opengl'
+    }
+};
 
+//run DOSBox with command
+box.runCommand(['echo hello dosbox'], { conf })
+    .catch(error => {
+        throw error
+    })
+    .then(
+        info => {
+            console.log(info)
+        }
+    )
 ```

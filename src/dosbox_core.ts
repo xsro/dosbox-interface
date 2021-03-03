@@ -1,11 +1,12 @@
 import * as fs from 'fs';
 import * as cp from 'child_process';
 import * as path from 'path';
-import { dosboxConf } from './dosbox_conf';
+import { dosboxConf as DosboxConf } from './dosbox_conf';
 import { DOSBoxConf } from '.';
 
 interface DOSBoxOption {
-    conf?: string | dosboxConf;
+    /**the dosbox conf can be a path of conf file or a  DosboxConf*/
+    conf?: string | DosboxConf;
     param?: string[];
 }
 
@@ -68,8 +69,10 @@ export class DOSBox {
     /**run dosbox commands */
     public runCommand(boxcmd: string[], opt?: DOSBoxOption): Promise<DOSBoxStd> {
         const param = [];
-        if ((typeof opt?.conf) === 'string') {
-            param.push(`-conf "${opt?.conf}"`);
+        if (opt && opt.conf && (typeof opt.conf) === 'string') {
+            if(fs.existsSync(opt.conf as string)){
+                param.push(`-conf "${opt?.conf}"`);
+            }
         }
         if (opt?.param && opt?.param.length > 0) {
             param.push(...opt.param);
@@ -94,7 +97,7 @@ export class DOSBox {
         if (conf && this.cwd) {
             const dst = path.resolve(this.cwd, 'node_dosbox.conf');
             param.push(`-conf "${dst}"`);
-            const data = dosboxConf.stringfy(conf);
+            const data = DosboxConf.stringfy(conf);
             fs.writeFileSync(dst, data)
         }
         return this.run(param.join(" "));
@@ -116,18 +119,18 @@ export class DOSBox {
     };
 
     public stdoutHander: (message: string, text: string, No: number) => void = (message: string) => {
-        console.count('stdout');
-        console.log(message);
+        // console.count('stdout');
+        // console.log(message);
     };
 
     public stderrHander: (message: string, text: string, No: number) => void = (message: string) => {
-        console.log('stderr');
-        console.error(message);
+        // console.log('stderr');
+        // console.error(message);
     };
 
     private runViaChildProcess(command: string): Promise<DOSBoxStd> {
         let stdout = "", stderr = "", exitcode: number | null | undefined = undefined;
-        console.log(command);
+        //console.log(command);
         this._count++;
         return new Promise(
             (resolve, reject) => {
@@ -150,8 +153,11 @@ export class DOSBox {
                         }
                         const output = { stdout, stderr, exitcode }
                         if (error) {
-                            reject([error, output]);
-                            throw error;
+                            (error as any).note='try to open DOSBox failed';
+                            (error as any).child_processError=error;
+                            (error as any).output=output;
+                            reject(error);
+                           // throw error;
                         }
                         else {
                             resolve(output);
@@ -186,7 +192,7 @@ function winReadConsole(folder: string) {
             if (dirs.includes(val)) {
                 return fs.readFileSync(path.resolve(folder, val), { encoding: 'utf-8' })
             } else {
-                console.warn(`no file ${val}`)
+                //console.warn(`no file ${val}`)
             }
         }
     )
