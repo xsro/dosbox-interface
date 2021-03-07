@@ -15,8 +15,8 @@ Requires [DOSBox](https://www.dosbox.com/) to be installed and that it can be ca
 ## Usage
 
 ```javascript
-const BOX = require('dosbox-interface');
-let box = BOX.DOSBox.Fromdir('C:\\your\\DOSBox\\Folder');
+const {DOSBox} = require('dosbox-interface');
+let box = DOSBox.Fromdir('C:\\your\\DOSBox\\Folder');
 
 //set DOSBox configurations
 const conf = {
@@ -30,7 +30,7 @@ const conf = {
 };
 
 //run DOSBox with command
-box.runCommand(['echo hello dosbox'], { conf })
+box.runCommand('echo hello dosbox', { conf })
     .catch(error => {
         throw error
     })

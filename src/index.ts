@@ -1,10 +1,10 @@
 import * as cp from 'child_process';
-import { dosboxConf } from './dosbox_conf';
+import * as conf from './dosbox_conf';
 import * as core from './dosbox_core';
 
 
 export class DOSBox extends core.DOSBox { };
-export class DOSBoxConf extends dosboxConf { };
+export class BoxConf extends conf.BoxConf { };
 
 
 

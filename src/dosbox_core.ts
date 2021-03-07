@@ -1,12 +1,11 @@
 import * as fs from 'fs';
 import * as cp from 'child_process';
 import * as path from 'path';
-import { dosboxConf as DosboxConf } from './dosbox_conf';
-import { DOSBoxConf } from '.';
+import { BoxConf } from './dosbox_conf';
 
 interface DOSBoxOption {
     /**the dosbox conf can be a path of conf file or a  DosboxConf*/
-    conf?: string | DosboxConf;
+    conf?: string | BoxConf;
     param?: string[];
 }
 
@@ -33,8 +32,10 @@ export enum WINCONSOLEOPTION {
 export class DOSBox {
     /**the maximum of dosbox commands */
     static MAX_DOSBOX_COMMAND = 10;
-    /**constructe from the path of dosbox */
-    static Fromdir(cwd?: string, opt?: { winConsole?: WINCONSOLEOPTION }) {
+    /**get a dosbox from the path of dosbox's folder, 
+     * @returns a dosbox instance can't make sure runable
+    */
+    static Fromdir(cwd?: string, opt?: { winConsole?: WINCONSOLEOPTION }): DOSBox {
         const core = OpenDosboxCmd(opt?.winConsole === WINCONSOLEOPTION.min);
         const box = new DOSBox(core);
 
@@ -45,7 +46,27 @@ export class DOSBox {
         return box;
     }
 
-    /**the command to open DOSBox */
+    /**get a dosbox from the path of dosbox's folder, 
+     * @param cwd the folder of Dosbox
+     * @param opt dosbox console option for windows OS
+     * @returns a promise of dosbox instance or undefined if constructtion failed
+    */
+    static async fromDir(cwd?: string, opt?: { winConsole?: WINCONSOLEOPTION }): Promise<DOSBox | undefined> {
+        const core = OpenDosboxCmd(opt?.winConsole === WINCONSOLEOPTION.min);
+        let box: DOSBox | undefined = new DOSBox(core);
+
+        if (opt?.winConsole !== undefined) {
+            box.console = opt?.winConsole;
+        }
+        box.cwd = cwd;
+
+        await box.version().catch(e => {
+            box = undefined;
+        });
+        return box;
+    }
+
+    /**the command to open DOSBox which will be sended to child_process.exec*/
     public readonly _core: string;
     /**the Current Work Diractory for child_process*/
     public cwd?: string = process.cwd();
@@ -62,15 +83,30 @@ export class DOSBox {
         this._core = core;
     }
 
-    public version() {
-        return this.run('-version')
+    /**get the version of the dosbox
+     * @return the version part of the output
+    */
+    public async version() {
+        const info = await this.run('-version');
+        const r = /DOSBox version (.*?),/
+        const re = r.exec(info.stdout);
+        if (re?.length === 2) {
+            return re[1]
+        };
+        return undefined;
     }
 
-    /**run dosbox commands */
-    public runCommand(boxcmd: string[], opt?: DOSBoxOption): Promise<DOSBoxStd> {
+    /**run dosbox commands
+     * @param boxcmd: the commands to exec in dosbox
+     * @param opt options
+    */
+    public runCommand(boxcmd: string[] | string, opt?: DOSBoxOption): Promise<DOSBoxStd> {
         const param = [];
+        if (typeof boxcmd === 'string') {
+            boxcmd = [boxcmd];
+        }
         if (opt && opt.conf && (typeof opt.conf) === 'string') {
-            if(fs.existsSync(opt.conf as string)){
+            if (fs.existsSync(opt.conf as string)) {
                 param.push(`-conf "${opt?.conf}"`);
             }
         }
@@ -78,7 +114,7 @@ export class DOSBox {
             param.push(...opt.param);
         }
 
-        let conf: DOSBoxConf | undefined = undefined;
+        let conf: BoxConf | undefined = undefined;
         if (opt?.conf) {
             conf = opt.conf;
         }
@@ -97,7 +133,7 @@ export class DOSBox {
         if (conf && this.cwd) {
             const dst = path.resolve(this.cwd, 'node_dosbox.conf');
             param.push(`-conf "${dst}"`);
-            const data = DosboxConf.stringfy(conf);
+            const data = BoxConf.stringfy(conf);
             fs.writeFileSync(dst, data)
         }
         return this.run(param.join(" "));
@@ -153,11 +189,11 @@ export class DOSBox {
                         }
                         const output = { stdout, stderr, exitcode }
                         if (error) {
-                            (error as any).note='try to open DOSBox failed';
-                            (error as any).child_processError=error;
-                            (error as any).output=output;
+                            (error as any).note = 'try to open DOSBox failed';
+                            (error as any).child_processError = error;
+                            (error as any).output = output;
                             reject(error);
-                           // throw error;
+                            // throw error;
                         }
                         else {
                             resolve(output);
@@ -198,8 +234,6 @@ function winReadConsole(folder: string) {
     )
     return output;
 }
-
-
 
 export interface DOSBoxStd {
     stdout: string;

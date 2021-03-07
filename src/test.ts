@@ -1,9 +1,8 @@
-import { DOSBox, DOSBoxConf } from './index';
-const myDosboxFolder='D:\\Program Files (x86)\\DOSBox-0.74-3\\'
+import { DOSBox, BoxConf } from './index';
 
-let box = DOSBox.Fromdir(myDosboxFolder);
-console.log('launch test');
-const conf: DOSBoxConf = {
+const myDosboxFolder = 'D:\\Program Files (x86)\\DOSBox-0.74-3\\'
+
+const conf: BoxConf = {
     cpu: {
         cycles: '1000'
     },
@@ -13,18 +12,22 @@ const conf: DOSBoxConf = {
     }
 };
 
-let n = 0;
 const cmds = new Array(99).fill('').map(
-    _ => {
-        return 'echo ' + String(++n);
-    });
-cmds.push('PAUSE','EXIT');
+    (val, idx) => 'echo ' + String(idx));
+cmds.push('PAUSE', 'EXIT');
 
-
-box.runCommand(cmds, { conf }).then(
-    info => {
-        console.log(info.stdout)
+async function main() {
+    const box1 = await DOSBox.fromDir();
+    if (box1) {
+        box1?.runCommand(cmds, { conf })
     }
-)
+    const box2 = await DOSBox.fromDir(myDosboxFolder);
+    if (box2) {
+        box2?.runCommand(cmds, { conf })
+    }
+}
+
+main();
+
 
 
